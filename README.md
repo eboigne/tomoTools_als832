@@ -18,11 +18,13 @@ Use mamba to install dependencies (faster than conda, but still takes some time)
 
 `mamba install -c conda-forge -c simpleitk -c anaconda tifffile numpy scipy matplotlib jupyter numexpr astropy h5py simpleitk scikit-image jedi=0.17`
 
-Install PyTorch, make sure that a GPU version is installed (check [the official website](https://pytorch.org/) for more instructions):
+Install PyTorch, make sure that a CUDA version is installed (check [the official website](https://pytorch.org/) for more instructions):
 
 `mamba install -c pytorch pytorch cudatoolkit=10.1`
 
 `mamba install -c astra-toolbox/label/dev astra-toolbox`
+
+`mamba install -c conda-forge tomopy`
 
 Then clone the scripts, and run them in a local notebook:
 
@@ -31,7 +33,7 @@ Then clone the scripts, and run them in a local notebook:
 `jupyter-notebook`
 
 ## Debug
-If kernel dies every time the Astra algorithm is run, try uninstalling and re-installing Astra:
+If the kernel dies every time the Astra algorithm is run, try uninstalling and re-installing Astra:
 
 `mamba remove astra-toolbox`
 

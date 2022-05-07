@@ -2,60 +2,11 @@ import numpy as np
 import numexpr as ne
 import sys
 import pkgutil
-
-package = pkgutil.get_loader('wrapper_ASTRA')
-try: # Python 3
-    script_path = '/'.join((package.path).split('/')[:-3])+'/'
-except: # Python 2
-    script_path = '/'.join((package.filename).split('/')[:-3])+'/'
-
-sys.path.append(script_path+'utils/')
-sys.path.append(script_path+'als/')
-sys.path.append(script_path+'io/')
-sys.path.append(script_path+'als/c_4DCT/')
-sys.path.append(script_path)
-
-
-# import matplotlib.pyplot as plt
 import os
 import time
-
-# import tomopy
 import astra
-# import dxchange
-    # import h5py
 import tifffile
-
-# import skimage.filters
 import scipy.ndimage.morphology
-# from tiff_stack import *
-from CtAlgorithm import *
-
-# from stripe_artifact_removal import *
-
-# def apply_offset(data, offset): # Apply a center-of-rotation offset to the sinogram. 
-#     # This is to correct for when the exact COR is not aligned with the center of the detector
-    
-#     if offset == 0:
-#         return(data)
-
-#     data_out = np.zeros_like(data)
-#     floor = np.int(np.floor(offset))
-#     ratio = np.abs(offset-floor)
-#     floor = np.abs(floor)
-#     if len(data.shape) == 2:
-#         if offset > 0:
-#             data_out[:,:-(floor+1)] = (1-ratio)*data[:,floor:-1] + ratio*data[:,floor+1:]
-#         elif offset >= -1.0:
-#             data_out[:,floor:] = (1-ratio)*data[:,:-floor] + ratio*data[:,1:]
-#         else:
-#             data_out[:,floor:] = (1-ratio)*data[:,:-floor] + ratio*data[:,1:-(floor-1)]
-#     else:
-#         for i in range(data.shape[0]):
-#             data_out[i,:,:] = apply_offset(data[i,:,:], offset)
-        
-#     return(data_out)
-
 
 def FP(rec, angles, supersampling = 1, use_cuda = True, pixel_width = 1.0, voxel_size = 1.0, ang_noise = 0):
 
