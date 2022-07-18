@@ -16,7 +16,7 @@ Use conda to install mamba:
 
 Use mamba to install dependencies (faster than conda, but still takes some time):
 
-`mamba install -c conda-forge -c simpleitk -c anaconda tifffile numpy scipy matplotlib jupyter numexpr astropy h5py simpleitk scikit-image jedi=0.17`
+`mamba install -c conda-forge -c simpleitk -c anaconda tifffile numpy scipy matplotlib jupyter numexpr astropy h5py simpleitk jedi=0.17`
 
 Install PyTorch, make sure that a CUDA version is installed (check [the official website](https://pytorch.org/) for more instructions):
 
@@ -39,3 +39,10 @@ If the kernel dies every time the Astra algorithm is run, try uninstalling and r
 
 `mamba install -c astra-toolbox/label/dev astra-toolbox`
 
+
+## Numpy error:
+`AttributeError: module 'numpy.ctypeslib' has no attribute '_typecodes'`
+
+Appeared from Tomopy ring removal filter, requires numpy<=1.15:
+
+`mamba install -c conda-forge -c anaconda -c astra-toolbox/label/dev -c pytorch -c simpleitk numpy=1.15`
