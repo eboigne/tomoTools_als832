@@ -537,7 +537,7 @@ def reconstruct_scan(path_in, scan, path_save = '', ):
     # Pre-processing parameters
     bin_factor = 2 # Bin projection, flat & dark images by this factor
     bin_factor_angle = 1 # Bin projection images along the angle direction by this factor
-    bin_gpu_chunk_size = 30 * bin_factor * bin_factor + 7 # Max number of slices simultaneously processed on the GPU
+    bin_gpu_chunk_size = 2 # 5 * bin_factor * bin_factor + 7 # Max number of slices simultaneously processed on the GPU
     filter_type = 'ram-lak' # FBP filter. Note from ram-lak, apply Gaussian blur with radius sigma = 1 yields results really close to Parzen.
     skip_first_flats = 20 # Skip the first few N flats, usually not as good quality.
 
@@ -553,7 +553,7 @@ def reconstruct_scan(path_in, scan, path_save = '', ):
 
     # Outlier correction
     use_outlier_correction = True
-    gpu_median_filter_chunk_size = 100 * bin_factor * bin_factor + 7 # Avoid divider of Nangles and Nflats. Even smaller because median filter requires large memory use. Check nvidia-smi
+    gpu_median_filter_chunk_size = 3 # 100 * bin_factor * bin_factor + 7 # Avoid divider of Nangles and Nflats. Even smaller because median filter requires large memory use. Check nvidia-smi
     outlier_kernel_half_width = 2 # Make it at least bin_factor, otherwise can miss zinglers on first/last slices
     outlier_zinger_threshold = 0.3
 

@@ -12,23 +12,17 @@ Install using conda, create and activate an environment:
 
 Use conda to install mamba:
 
-`conda install -c conda-forge mamba python=3.6`
+`conda install -c conda-forge mamba python=3.7`
 
 Use mamba to install dependencies (faster than conda, but still takes some time):
 
-`mamba install -c conda-forge -c simpleitk -c anaconda tifffile numpy scipy matplotlib jupyter numexpr astropy h5py simpleitk jedi=0.17`
+`mamba install -c conda-forge -c simpleitk -c anaconda tifffile numpy scipy matplotlib jupyter numexpr astropy h5py simpleitk tomopy jedi=0.17`
 
 Install PyTorch, make sure that a CUDA version is installed (check [the official website](https://pytorch.org/) for more instructions):
 
-`mamba install -c pytorch pytorch cudatoolkit=10.1`
+`mamba install -c pytorch pytorch cudatoolkit=11.3`
 
 `mamba install -c astra-toolbox/label/dev astra-toolbox`
-
-`mamba install -c conda-forge tomopy`
-
-To enable the registration/alignment options using the simpleITK tools:
-
-`mamba install -c simpleitk simpleitk`
 
 Then clone the scripts, and run them in a local notebook:
 
