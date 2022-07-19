@@ -15,6 +15,9 @@ import multiprocessing
 import wrapper_ASTRA
 import h5py
 import File
+import gc # Garbage collected
+
+from rigidTransform3D import *
 
 def print2(str, end = '\n'):
     sys.stdout.write(str+end)
@@ -503,3 +506,458 @@ def apply_offset(image, offset): # Apply a center-of-rotation offset to the sino
         
         
     return(image_out)
+
+
+
+
+
+def reconstruct_scan(path_in, scan, path_save = '', ):
+
+    if path_save == '':
+        path_save = path_in
+    else:
+        path_save += '/'
+
+    print('\n')
+    use_dark_from_scan = scan['use_dark_from_scan']
+    if not use_dark_from_scan:
+        h5py_file_dark = read_h5_file(path_in, path_files=[scan['path_dark'],])[0]
+    use_flat_from_scan = scan['use_flat_from_scan']
+    if not use_flat_from_scan:
+        h5py_file_flat = read_h5_file(path_in, path_files=[scan['path_flat'],])[0]
+    h5py_files = read_h5_file(path_in, path_files=[scan['path_proj'],])
+    h5py_file = h5py_files[0]
+
+    # Acquisition parameters
+    pixel_size_microns = 3.24 # [microns]
+    N_angles_per_half_circle = scan['N_angles_per_half_circle']
+    N_half_circles = 2 # With half-circles, and 0-180 range: the 180 angle is repeated (acquired twice)
+    COR = scan['COR'] # / bin_factor
+
+    # Pre-processing parameters
+    bin_factor = 2 # Bin projection, flat & dark images by this factor
+    bin_factor_angle = 1 # Bin projection images along the angle direction by this factor
+    bin_gpu_chunk_size = 30 * bin_factor * bin_factor + 7 # Max number of slices simultaneously processed on the GPU
+    filter_type = 'ram-lak' # FBP filter. Note from ram-lak, apply Gaussian blur with radius sigma = 1 yields results really close to Parzen.
+    skip_first_flats = 20 # Skip the first few N flats, usually not as good quality.
+
+    # Double normalization parameters:
+    # normalize out fluctuations in photon counts between successive projection images
+    # using mean value in a window at the left and right of the FOV (where no sample is)
+    boolean_use_DN = True # Whether to use the double normalization
+    window_width_DN = 25 // bin_factor # Width of the window [in pixels]
+    window_cutEdge_DN = 10 // bin_factor # How far the window is from the left and right edges of the FOV [in pixels]
+    # ind_range_DN = np.concatenate((np.arange(window_cutEdge_DN, window_width_DN,1),np.arange(h5py_file.width//bin_factor-(window_width_DN),2560//bin_factor-window_cutEdge_DN,1)))
+    ind_range_DN = np.concatenate((np.arange(window_cutEdge_DN, window_width_DN,1),np.arange(2560//bin_factor-(window_width_DN),2560//bin_factor-window_cutEdge_DN,1)))
+
+
+    # Outlier correction
+    use_outlier_correction = True
+    gpu_median_filter_chunk_size = 100 * bin_factor * bin_factor + 7 # Avoid divider of Nangles and Nflats. Even smaller because median filter requires large memory use. Check nvidia-smi
+    outlier_kernel_half_width = 2 # Make it at least bin_factor, otherwise can miss zinglers on first/last slices
+    outlier_zinger_threshold = 0.3
+
+    # Saving parameters:
+    proj_save_every = 31
+    save_sinogram = False
+    sino_save_every = 1
+
+    # For fast post-processing
+    crop_image = False
+    ind_image_crop_bottom = 490
+    ind_image_crop_top = 510
+
+    # Not recommended unless necessary
+    boolean_use_TN = False # True
+
+    # Pre-process sinogram data: SHOULDN'T CHANGE ANYTHING IN THIS CELL
+    height = h5py_file.height
+
+    # Reconstruction
+    if N_half_circles == 2:
+    # For N_half_circles = 2, use ind_last_angle = 1 as last angle is the same as the first angle, and should thus be discarded
+        ind_last_angle = 1 # Counting backwards. 0: using all angles, 1: Skip last angle, ...
+    else:
+    # For N_half_circles = 1, unsure since acquisition scheme changed in 2021.
+        ind_last_angle = 0
+
+    N_avg = 1
+    angles_all = np.linspace(0, 2*np.pi, 2*(N_angles_per_half_circle*N_avg-(N_avg-1))-1)
+    angles_to_use = angles_all
+    angles_to_use1 = angles_to_use[:N_angles_per_half_circle-1]
+    if ind_last_angle > 0:
+        angles_to_use2 = angles_to_use[N_angles_per_half_circle-1:-ind_last_angle]
+    else:
+        angles_to_use2 = angles_to_use[N_angles_per_half_circle-1:]
+
+    pixel_size_cm = pixel_size_microns / 1.0e4 * bin_factor
+
+    ind_save_PMDOF_DN = np.concatenate((np.arange(0, (N_angles_per_half_circle-ind_last_angle)//bin_factor_angle, proj_save_every), np.arange((N_angles_per_half_circle-ind_last_angle)//bin_factor_angle-4,(N_angles_per_half_circle-ind_last_angle)//bin_factor_angle,1))).astype('int')
+    ind_save_sinogram = np.arange(0, h5py_file.height, sino_save_every).astype('int')
+
+    # ======================================== #
+
+    print2('\tImporting dark -- ',end='')
+    if use_dark_from_scan:
+        dark = np.array(h5py_file['exchange']['data_dark']).astype('float32')
+    else:
+        dark = np.array(h5py_file_dark['exchange']['data']).astype('float32')
+    print2('Done')
+
+    if crop_image:
+        dark = dark[:,ind_image_crop_bottom:ind_image_crop_top,:]
+
+    if bin_factor>1:
+        print2('\tBinning dark data ',end='')
+        dark = fast_pytorch_bin_chunk(dark,bin_factor, chunk_size = bin_gpu_chunk_size)
+        print2(' Done')
+    dark_avg = np.mean(dark,axis = 0)
+
+    ind_save_sinogram = ind_save_sinogram[ind_save_sinogram < dark.shape[1]]
+
+    tic = time.time()
+    print2('Processing file: '+str(h5py_file.path_file))
+
+    print2('\tImporting flat -- ',end='')
+    if use_flat_from_scan:
+        flat = h5py_file['exchange']['data_white']
+    else:
+        flat = h5py_file_flat['exchange']['data']
+    print2('Done')
+
+    flat = flat[skip_first_flats:]
+    if crop_image:
+        flat = flat[:,ind_image_crop_bottom:ind_image_crop_top,:]
+
+    print2('\tImporting projections -- ',end='')
+    proj = h5py_file['exchange']['data']
+    print2('Done')
+
+    if crop_image:
+        proj = proj[:,ind_image_crop_bottom:ind_image_crop_top,:]
+
+    bin_str = str(bin_factor_angle)+'x'+str(bin_factor)+'x'+str(bin_factor)
+
+    if bin_factor>1:
+        print2('\tBinning data ',end='')
+        flat = fast_pytorch_bin_chunk(flat,bin_factor, chunk_size = bin_gpu_chunk_size)
+        if N_half_circles == 1:
+            if ind_last_angle > 0:
+                proj = proj[:-ind_last_angle]
+            proj = fast_pytorch_bin_chunk(proj,bin_factor, bin_factor_angle = bin_factor_angle, chunk_size = bin_gpu_chunk_size)
+        elif N_half_circles == 2:
+            if ind_last_angle > 0:
+                proj1 = fast_pytorch_bin_chunk(proj[:N_angles_per_half_circle-1],bin_factor, bin_factor_angle = bin_factor_angle, chunk_size = bin_gpu_chunk_size)
+                proj2 = fast_pytorch_bin_chunk(proj[N_angles_per_half_circle-1:-ind_last_angle],bin_factor, bin_factor_angle = bin_factor_angle, chunk_size = bin_gpu_chunk_size)
+            else:
+                proj1 = fast_pytorch_bin_chunk(proj[:N_angles_per_half_circle-1],bin_factor, bin_factor_angle = bin_factor_angle, chunk_size = bin_gpu_chunk_size)
+                proj2 = fast_pytorch_bin_chunk(proj[N_angles_per_half_circle-1:],bin_factor, bin_factor_angle = bin_factor_angle, chunk_size = bin_gpu_chunk_size)
+        print2(' Done')
+        ind_save_PMDOF_DN = ind_save_PMDOF_DN[ind_save_PMDOF_DN<proj2.shape[0]]
+    else:
+        if N_half_circles == 2:
+            if ind_last_angle > 0:
+                proj1 = proj[:N_angles_per_half_circle-1]
+                proj2 = proj[N_angles_per_half_circle-1:-ind_last_angle]
+            else:
+                proj1 = proj[:N_angles_per_half_circle-1]
+                proj2 = proj[N_angles_per_half_circle-1:]
+
+    if use_outlier_correction:
+        print2('\tRemoving outliers (zingers) for flats ',end='')
+        flat = fast_pytorch_remove_zingers_chunk(flat, outlier_kernel_half_width, outlier_zinger_threshold, chunk_size = gpu_median_filter_chunk_size).astype('float32')
+        print2(' Done')
+
+        print2('\tRemoving outliers (zingers) for proj ',end='')
+        if N_half_circles == 1:
+            proj = fast_pytorch_remove_zingers_chunk(proj, outlier_kernel_half_width, outlier_zinger_threshold, chunk_size = gpu_median_filter_chunk_size).astype('float32')
+        elif N_half_circles == 2:
+            proj1 = fast_pytorch_remove_zingers_chunk(proj1, outlier_kernel_half_width, outlier_zinger_threshold, chunk_size = gpu_median_filter_chunk_size).astype('float32')
+            proj2 = fast_pytorch_remove_zingers_chunk(proj2, outlier_kernel_half_width, outlier_zinger_threshold, chunk_size = gpu_median_filter_chunk_size).astype('float32')
+        print2(' Done')
+
+    print2('\tComputing transmission -- ',end='')
+    flat += -dark_avg
+    flat_avg = np.mean(flat,axis = 0).astype('float32')
+    File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+'_bin'+bin_str+'_flat_avg', clear = True).saveTiff(flat_avg)
+    if N_half_circles == 1:
+        proj += -dark_avg
+        proj /= flat_avg
+    elif N_half_circles == 2:
+        proj1 += -dark_avg
+        proj2 += -dark_avg
+        N_flat = flat.shape[0]
+        proj1 /= flat_avg
+        proj2 /= flat_avg
+    print2('Done')
+
+    if boolean_use_DN:
+        print2('\tComputing double normalization -- ',end='')
+        if N_half_circles == 1:
+            double_norm = np.reshape(np.mean(proj[:,:,ind_range_DN], axis=(1,2)), [proj.shape[0], 1,1]) # One coeff per angle
+            proj /= double_norm
+
+            if boolean_use_TN:
+                triple_norm = np.reshape(np.mean(proj[:,:,ind_range_DN], axis=(0,2)), [1, proj.shape[1],1]) # One coeff per slice (y-axis)
+                triple_normB = np.copy(triple_norm)
+                triple_normB[triple_normB<0.985] = 0.985
+                triple_normB[triple_normB>1.015] = 1.015
+                proj /= triple_normB
+
+        elif N_half_circles == 2:
+            double_norm1 = np.reshape(np.mean(proj1[:,:,ind_range_DN], axis=(1,2)), [proj1.shape[0], 1,1])
+            double_norm2 = np.reshape(np.mean(proj2[:,:,ind_range_DN], axis=(1,2)), [proj2.shape[0], 1,1])
+
+            proj1 /= double_norm1
+            proj2 /= double_norm2
+
+            if boolean_use_TN:
+                triple_norm1 = np.reshape(np.mean(proj1[:,:,ind_range_DN], axis=(0,2)), [1, proj1.shape[1],1])
+                triple_norm2 = np.reshape(np.mean(proj2[:,:,ind_range_DN], axis=(0,2)), [1, proj2.shape[1],1])
+
+                triple_norm1B = np.copy(triple_norm1)
+                triple_norm1B[triple_norm1B<0.985] = 0.985
+                triple_norm1B[triple_norm1B>1.015] = 1.015
+
+                triple_norm2B = np.copy(triple_norm2)
+                triple_norm2B[triple_norm2B<0.985] = 0.985
+                triple_norm2B[triple_norm2B>1.015] = 1.015
+
+                proj1 /= triple_norm1B
+                proj2 /= triple_norm2B
+        print2('Done')
+    else:
+        print2('\tSkipping double normalization')
+
+    print2('\tWriting PMDOF_DN to tif -- ',end='')
+    if N_half_circles == 1:
+        suffix = '_bin'+bin_str+'_PMDOF_DN/'
+        File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(proj[ind_save_PMDOF_DN,:,:],ind=ind_save_PMDOF_DN)
+
+    elif N_half_circles == 2:
+        suffix = '_bin'+bin_str+'_PMDOF_DN_a_0-180/'
+        File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(proj1[ind_save_PMDOF_DN,:,:],ind=ind_save_PMDOF_DN)
+
+        suffix = '_bin'+bin_str+'_PMDOF_DN_b_180-360/'
+        File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(proj2[ind_save_PMDOF_DN,:,:],ind=ind_save_PMDOF_DN)
+    print2('Done')
+
+    print2('\tMaking sinograms -- ',end='')
+    if N_half_circles == 1:
+        sino = -np.log(np.transpose(proj[:,ind_save_sinogram,:], [1, 0, 2]))
+    elif N_half_circles == 2:
+        sino1 = -np.log(np.transpose(proj1[:,ind_save_sinogram,:], [1, 0, 2]))
+        sino2 = -np.log(np.transpose(proj2[:,ind_save_sinogram,:], [1, 0, 2]))
+        sino = np.concatenate((sino1,sino2),axis = 1)
+    print2('Done')
+
+    del proj, proj1, proj2
+    gc.collect()
+
+    if save_sinogram:
+        print2('\tWriting sinograms to tif -- ',end='')
+        if N_half_circles == 1:
+            suffix = '_bin'+bin_str+'_sino/'
+            File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(sino,ind=ind_save_sinogram)
+        elif N_half_circles == 2:
+            suffix = '_bin'+bin_str+'_sino_a_0-180/'
+            File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(sino1,ind=ind_save_sinogram)
+            suffix = '_bin'+bin_str+'_sino_b_180-360_flipped/'
+            File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(sino2,ind=ind_save_sinogram)
+        print2('Done')
+
+
+    skip_every_slice = 1
+
+    if N_half_circles == 1:
+
+        print2('\tDoing FBP reconstruction -- ',end='')
+        rec = []
+        angles = np.linspace(0, np.pi, sino.shape[1], False)
+        for this_sino in sino:
+            rec.append(wrapper_ASTRA.FBP(this_sino/pixel_size_cm, filter_type=filter_type, angles = angles, center_rot = COR))
+        rec = np.array(rec)
+        print2('Done')
+
+        print2('\tSaving FBP reconstruction ('+str(rec.shape[0])+' slices) -- ',end='')
+        suffix = '_bin'+bin_str+'_FBP_COR_'+str(COR).zfill(2)+'/'
+        File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(rec,ind=ind_save_sinogram)
+        print2('Done')
+
+    elif N_half_circles == 2:
+
+        print2('\tDoing FBP reconstruction (1/2) -- ',end='')
+        rec1 = []
+        angles = angles_to_use1
+        for this_sino in sino1[::skip_every_slice]:
+            rec1.append(wrapper_ASTRA.FBP(this_sino/pixel_size_cm, filter_type=filter_type, angles = angles, center_rot = COR))
+        rec1 = np.array(rec1)
+        print2('Done (1/2)')
+
+        # print2('\tSaving FBP reconstruction (1/2) -- ',end='')
+        # suffix = '_bin'+bin_str+'_FBP_COR_'+str(COR).zfill(2)+'/'
+        # File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(rec1,ind=ind_save_sinogram)
+        # print2('Done (1/2)')
+
+        print2('\tDoing FBP reconstruction (2/2) -- ',end='')
+        rec2 = []
+        angles = angles_to_use2
+        for this_sino in sino2[::skip_every_slice]:
+            rec2.append(wrapper_ASTRA.FBP(this_sino/pixel_size_cm, filter_type=filter_type, angles = angles, center_rot = COR))
+        rec2 = np.array(rec2)
+        print2('Done (2/2)')
+
+        # print2('\tSaving FBP reconstruction (2/2) -- ',end='')
+        # suffix = '_bin'+bin_str+'_FBP_COR_'+str(COR).zfill(2)+'_b_180-360_flipped/'
+        # File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(rec2,ind=ind_save_sinogram)
+        # print2('Done (2/2)')
+
+        print2('\tSaving averaged of two half circles -- ',end='')
+        suffix = '_bin'+bin_str+'_FBP_COR_'+str(COR).zfill(2)+'_c_averaged_half_circles/'
+        File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(0.5*(rec1+rec2),ind=ind_save_sinogram)
+        print2('Done')
+
+    print2('This took '+str(time.time()-tic)+' s')
+
+
+def import_data(path_save, scan):
+
+    print('Importing data:')
+    tic = time.time()
+    path_scan = path_save+scan['path_proj'].split('/')[-1][:-3]
+    path_scan = path_scan+'/'+[e for e in os.listdir(path_scan) if 'FBP' in e and not 'indLastAngle' in e][0]
+
+    rec = File(path_scan).readAll()
+    toc = time.time()
+    print('This took '+str(toc-tic)+' s')
+
+    return(rec)
+
+def run_registration(folder_name, static, moving, path_mask, save_str = 'd', return_transform = False, nb_it = 5, smoothingSigmas = [3, 2, 2, 2, 2, 2, 2, 1],shrinkFactors = [8, 8, 4, 4, 4, 4, 4, 2], ind_z_start = 20):
+
+    ind_z_end = static.shape[0]-ind_z_start
+    ind_y_start = 0
+    ind_y_end = static.shape[1]-ind_y_start
+    ind_x_start = 0
+    ind_x_end = static.shape[2]-ind_x_start
+    ind_z_slice_to_follow = static.shape[0]//2 - ind_z_start
+    ind_ROI_registration = (ind_z_start, ind_z_end, ind_y_start, ind_y_end, ind_x_start, ind_x_end)
+
+    tic = time.time()
+    clearFolder(folder_name+'/', boolClear=True)
+    volRegistered, transform = registerCall(nb_it, static, moving, folder_name, path_mask, ind_ROI_registration = ind_ROI_registration, ind_z_slice_to_follow = ind_z_slice_to_follow, shrinkFactors = shrinkFactors, smoothingSigmas = smoothingSigmas, save_str = save_str)
+    print('\t This took: '+str(time.time()-tic)+' s')
+
+    if return_transform:
+        return(volRegistered, transform)
+    else:
+        return(volRegistered)
+
+def reduceMask(mask_solid, pxBorder):
+    # Enlarge the solid mask by a little margin
+    dilate_struct = scipy.ndimage.morphology.generate_binary_structure(2,pxBorder) # 2 is for 2D structure.
+    mask_out = np.zeros_like(mask_solid)
+    for i in range(mask_solid.shape[0]):
+        mask_out[i,:,:] = scipy.ndimage.morphology.binary_erosion(mask_solid[i,:,:],dilate_struct, iterations=1)
+    return mask_out
+
+def modify_transform_binning_factor(transform, bin_factor):
+    transform = safe_copy_transform(transform)
+
+    center_x, center_y, center_z, center_angle = transform.GetFixedParameters()
+    transform.SetFixedParameters((center_x*bin_factor, center_y*bin_factor, center_z*bin_factor, center_angle)) # Not a function of offset_bottom
+    (eulerAngleX, eulerAngleY, eulerAngleZ, offsetX, offsetY, offsetZ) = transform.GetParameters()
+    transform.SetParameters((eulerAngleX, eulerAngleY, eulerAngleZ, offsetX*bin_factor, offsetY*bin_factor, offsetZ*bin_factor))
+    return(transform)
+
+def registerCall(nb_it,refVol, vol, prefix_out, mask_path, ind_ROI_registration = (), ind_z_slice_to_follow = 0, shrinkFactors = [2, 1], smoothingSigmas = [2, 1], save_str = 'd'):
+
+    maskTubeFile = File(mask_path)
+    maskTube = maskTubeFile.read()
+
+    def registerSubsetOfVolume(refVol, vol, refVolMask, volMask, pathSaveTransform, pathMoving = '', verbose = True, offset_it_number = 0, ind_z_slice_to_follow = 0, bin_factor = 1, initial_transform = '', **kwargs):
+
+        refVolReg = refVol.copy()
+        refVolReg[~refVolMask] = False
+        volReg = vol.copy()
+        volReg[~volMask] = False
+
+        mask = reduceMask(volMask, 5)
+
+        # Compute registration transform
+        tic =  time.time()
+        transform = computeTransform(refVolReg, volReg, pathSaveTransform, bool_save = True, mask = mask, pathMoving = pathMoving, verbose = verbose, ind_z_slice_to_follow = ind_z_slice_to_follow, offset_it_number = offset_it_number, bin_factor = bin_factor, initial_transform = initial_transform, **kwargs)
+        toc =  time.time()
+        print('\n\nComputed transform, took '+str(toc-tic)+' s')
+
+        return(transform)
+
+    pathMoving = prefix_out+'0_progress/'
+    clearFolder(pathMoving)
+
+    # Run registration
+
+    N = len(shrinkFactors)
+    transform = ''
+
+    for i in range(N):
+        kwargs = {}
+        kwargs['learningRate']=1.0
+        kwargs['numberOfIterations']= nb_it
+        kwargs['convergenceMinimumValue'] = 1e-20 # 1e-5000 Threshold below which iterations stop
+        kwargs['convergenceWindowSize'] = 2 # (>1) Nb of successive iterations used to compute the convergence minimum value (this exists because metric is usually not 100%, but because it is for me: 2 works fine /!| DONT USE 1). ALso number of minimal iterations.
+
+        bin_factor = shrinkFactors[i]
+        kwargs['shrinkFactors'] = [1,]
+        kwargs['smoothingSigmas'] = [smoothingSigmas[i],]
+
+        if i > 0:
+            kwargs['initialTransform']= transform
+            transform = modify_transform_binning_factor(transform, 1.0/bin_factor)
+
+        vol_bin = fast_pytorch_bin_3d(vol,bin_factor, chunk_size = min(88, 34*bin_factor))
+        refVol_bin = fast_pytorch_bin_3d(refVol,bin_factor, chunk_size = min(88, 34*bin_factor))
+
+        maskTube_bin = (fast_pytorch_bin_2d(maskTube,bin_factor)>0).astype('uint8')
+
+        # Mask: Both gas and solid phases inside the tube
+        refVolMask_bin = np.tile(maskTube_bin, [vol_bin.shape[0], 1, 1]).astype('bool')
+        volMask_bin = np.tile(maskTube_bin, [vol_bin.shape[0], 1, 1]).astype('bool')
+
+        pathSaveTransform = prefix_out+'transform.tfm'
+
+        if len(ind_ROI_registration) > 0:
+            ind_z_start, ind_z_end, ind_y_start, ind_y_end, ind_x_start, ind_x_end = (np.array(ind_ROI_registration)//bin_factor).tolist()
+            volMask_bin = volMask_bin[ind_z_start:ind_z_end, ind_y_start:ind_y_end, ind_x_start:ind_x_end]
+            refVolMask_bin = refVolMask_bin[ind_z_start:ind_z_end, ind_y_start:ind_y_end, ind_x_start:ind_x_end]
+            transform = registerSubsetOfVolume(refVol_bin[ind_z_start:ind_z_end, ind_y_start:ind_y_end, ind_x_start:ind_x_end], vol_bin[ind_z_start:ind_z_end, ind_y_start:ind_y_end, ind_x_start:ind_x_end], refVolMask_bin, volMask_bin, pathSaveTransform, pathMoving, verbose = True, offset_it_number = i*nb_it, ind_z_slice_to_follow = ind_z_slice_to_follow//bin_factor, bin_factor = bin_factor, initial_transform = transform, **kwargs)
+            center_x, center_y, center_z, center_angle = transform.GetFixedParameters()
+            transform.SetFixedParameters((center_x+ind_x_start, center_y+ind_y_start, center_z+ind_z_start, center_angle)) # Not a function of offset_bottom
+        else:
+            transform = registerSubsetOfVolume(refVol_bin, vol_bin, refVolMask_bin, volMask_bin, pathSaveTransform, pathMoving, verbose = True, offset_it_number = i*nb_it, ind_z_slice_to_follow = ind_z_slice_to_follow//bin_factor, bin_factor = bin_factor, initial_transform = transform, **kwargs)
+
+        # Modify transform to account for binning
+        transform = modify_transform_binning_factor(transform, bin_factor)
+
+        sitk.WriteTransform(transform, pathSaveTransform)
+
+
+    # Setup saved vol
+
+    tic =  time.time()
+    volRegistered = applyTransformToVolume(refVol, vol, transform)
+    toc =  time.time()
+    print('Applying transform to volume, took '+str(toc-tic)+' s')
+
+    print_transform_parameters(transform)
+
+    if 'a' in save_str:
+        File(prefix_out+'a_static/').saveTiffStack(refVol)
+    if 'b' in save_str:
+        File(prefix_out+'b_movingRegisteredToStatic/').saveTiffStack(volRegistered)
+    if 'c' in save_str:
+        File(prefix_out+'c_moving/').saveTiffStack(vol)
+    if 'd' in save_str:
+        File(prefix_out+'d_movingRegistered_minus_static/').saveTiffStack(volRegistered-refVol)
+
+    return(volRegistered, transform)

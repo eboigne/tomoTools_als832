@@ -26,6 +26,10 @@ Install PyTorch, make sure that a CUDA version is installed (check [the official
 
 `mamba install -c conda-forge tomopy`
 
+To enable the registration/alignment options using the simpleITK tools:
+
+`mamba install -c simpleitk simpleitk`
+
 Then clone the scripts, and run them in a local notebook:
 
 `git clone https://github.com/eboigne/tomoTools_als832.git`
