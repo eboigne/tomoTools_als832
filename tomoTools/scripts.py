@@ -518,6 +518,9 @@ def reconstruct_scan(path_in, scan, path_save = '', ):
     else:
         path_save += '/'
 
+    if not 'split_half_circles' in scan.keys():
+        scan['split_half_circles'] = False
+
     print('\n')
     use_dark_from_scan = scan['use_dark_from_scan']
     if not use_dark_from_scan:
@@ -537,7 +540,7 @@ def reconstruct_scan(path_in, scan, path_save = '', ):
     # Pre-processing parameters
     bin_factor = 2 # Bin projection, flat & dark images by this factor
     bin_factor_angle = 1 # Bin projection images along the angle direction by this factor
-    bin_gpu_chunk_size = 2 # 5 * bin_factor * bin_factor + 7 # Max number of slices simultaneously processed on the GPU
+    bin_gpu_chunk_size = 30 * bin_factor * bin_factor + 7 # Max number of slices simultaneously processed on the GPU
     filter_type = 'ram-lak' # FBP filter. Note from ram-lak, apply Gaussian blur with radius sigma = 1 yields results really close to Parzen.
     skip_first_flats = 20 # Skip the first few N flats, usually not as good quality.
 
@@ -553,7 +556,7 @@ def reconstruct_scan(path_in, scan, path_save = '', ):
 
     # Outlier correction
     use_outlier_correction = True
-    gpu_median_filter_chunk_size = 3 # 100 * bin_factor * bin_factor + 7 # Avoid divider of Nangles and Nflats. Even smaller because median filter requires large memory use. Check nvidia-smi
+    gpu_median_filter_chunk_size = 100 * bin_factor * bin_factor + 7 # Avoid divider of Nangles and Nflats. Even smaller because median filter requires large memory use. Check nvidia-smi
     outlier_kernel_half_width = 2 # Make it at least bin_factor, otherwise can miss zinglers on first/last slices
     outlier_zinger_threshold = 0.3
 
@@ -794,10 +797,11 @@ def reconstruct_scan(path_in, scan, path_save = '', ):
         rec1 = np.array(rec1)
         print2('Done (1/2)')
 
-        # print2('\tSaving FBP reconstruction (1/2) -- ',end='')
-        # suffix = '_bin'+bin_str+'_FBP_COR_'+str(COR).zfill(2)+'/'
-        # File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(rec1,ind=ind_save_sinogram)
-        # print2('Done (1/2)')
+        if scan['split_half_circles'] == True:
+            print2('\tSaving FBP reconstruction (1/2) -- ',end='')
+            suffix = '_bin'+bin_str+'_FBP_COR_'+str(COR).zfill(2)+'/'
+            File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(rec1,ind=ind_save_sinogram)
+            print2('Done (1/2)')
 
         print2('\tDoing FBP reconstruction (2/2) -- ',end='')
         rec2 = []
@@ -807,25 +811,26 @@ def reconstruct_scan(path_in, scan, path_save = '', ):
         rec2 = np.array(rec2)
         print2('Done (2/2)')
 
-        # print2('\tSaving FBP reconstruction (2/2) -- ',end='')
-        # suffix = '_bin'+bin_str+'_FBP_COR_'+str(COR).zfill(2)+'_b_180-360_flipped/'
-        # File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(rec2,ind=ind_save_sinogram)
-        # print2('Done (2/2)')
-
-        print2('\tSaving averaged of two half circles -- ',end='')
-        suffix = '_bin'+bin_str+'_FBP_COR_'+str(COR).zfill(2)+'_c_averaged_half_circles/'
-        File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(0.5*(rec1+rec2),ind=ind_save_sinogram)
-        print2('Done')
+        if scan['split_half_circles'] == True:
+            print2('\tSaving FBP reconstruction (2/2) -- ',end='')
+            suffix = '_bin'+bin_str+'_FBP_COR_'+str(COR).zfill(2)+'_b_180-360_flipped/'
+            File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(rec2,ind=ind_save_sinogram)
+            print2('Done (2/2)')
+        else:
+            print2('\tSaving averaged of two half circles -- ',end='')
+            suffix = '_bin'+bin_str+'_FBP_COR_'+str(COR).zfill(2)+'_c_averaged_half_circles/'
+            File(h5py_file.path_folder+h5py_file.file_name_noExtension+'/'+h5py_file.file_name_noExtension+suffix, clear = True).saveTiffStack(0.5*(rec1+rec2),ind=ind_save_sinogram)
+            print2('Done')
 
     print2('This took '+str(time.time()-tic)+' s')
 
 
-def import_data(path_save, scan):
+def import_data(path_save, scan, suffix = 'c_averaged_half_circles'):
 
     print('Importing data:')
     tic = time.time()
     path_scan = path_save+scan['path_proj'].split('/')[-1][:-3]
-    path_scan = path_scan+'/'+[e for e in os.listdir(path_scan) if 'FBP' in e and not 'indLastAngle' in e][0]
+    path_scan = path_scan+'/'+scan['FBP_folder'] #[e for e in os.listdir(path_scan) if 'FBP' in e and not 'indLastAngle' in e and suffix in e][0]
 
     rec = File(path_scan).readAll()
     toc = time.time()
