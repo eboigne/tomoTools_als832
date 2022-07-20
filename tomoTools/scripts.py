@@ -966,3 +966,36 @@ def registerCall(nb_it,refVol, vol, prefix_out, mask_path, ind_ROI_registration 
         File(prefix_out+'d_movingRegistered_minus_static/').saveTiffStack(volRegistered-refVol)
 
     return(volRegistered, transform)
+
+def custom_3d_kernel_sphere(half_width):
+    kernel_size = 2*half_width + 1
+    kernel = np.zeros([kernel_size,kernel_size,kernel_size])
+
+    one_in_center = np.zeros([kernel_size,kernel_size,kernel_size])
+    one_in_center[int(kernel_size/2), int(kernel_size/2), int(kernel_size/2)] = 1.0
+    kernel = scipy.ndimage.gaussian_filter(one_in_center,half_width/2)
+
+    Y, X, Z = np.ogrid[:kernel_size, :kernel_size, :kernel_size]
+    dist_from_center = np.sqrt((X - kernel_size//2)**2 + (Y-kernel_size//2)**2 + (Z-kernel_size//2)**2)
+
+    radius = half_width
+    kernel[dist_from_center > radius] = 0.0
+    max_value = np.max(kernel[dist_from_center <= radius])
+    min_value = np.min(kernel[dist_from_center <= radius])
+    kernel[dist_from_center <= radius] += (max_value-min_value)
+    kernel /= np.sum(kernel)
+
+    return(kernel)
+
+def custom_3d_gaussian_filter(filter_half_width):
+
+    # Window size of gaussian filter is ~3x the standard deviation sigma. See https://stackoverflow.com/questions/16165666/how-to-determine-the-window-size-of-a-gaussian-filter
+    window_size_parameter = 3
+
+    dirac_array = np.zeros([1+2*filter_half_width*window_size_parameter, 1+2*filter_half_width*window_size_parameter, 1+2*filter_half_width*window_size_parameter])
+    dirac_array[filter_half_width*window_size_parameter,filter_half_width*window_size_parameter,filter_half_width*window_size_parameter] = 1.0
+    gaussian_filter = scipy.ndimage.gaussian_filter(dirac_array, filter_half_width)
+
+    # plt.imshow(gaussian_filter[filter_half_width])
+
+    return(gaussian_filter)
