@@ -196,7 +196,7 @@ def fast_pytorch_convolution(img, kernel_array, verbose = False, chunk_size = 71
         torch.cuda.empty_cache()
         raise(error)
 
-def fast_pytorch_mask_erosion(mask, radius, use_pyTorch = True):
+def fast_pytorch_mask_dilation(mask, radius, use_pyTorch = True):
     if radius > 0:
         kernel = custom_3d_kernel_sphere(radius)
         if use_pyTorch:
