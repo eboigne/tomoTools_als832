@@ -239,7 +239,7 @@ def read_h5_file(path_save, path_files = []):
     if path_files == []:
         Tk().withdraw() # we don't want a full GUI, so keep the root window from appearing
         path_files = askopenfilenames(initialdir=path_save) # show an "Open" dialog box and return the path to the selected file
-    
+
     h5py_files = []
     for path_file in path_files:
         print('Using file: '+str(path_file))
@@ -257,19 +257,19 @@ def read_h5_file(path_save, path_files = []):
         size_proj = h5py_file['exchange']['data'].shape[1:]
         print('\t- Image size: '+str(size_proj))
 
-        h5py_file.path_file = path_file 
+        h5py_file.path_file = path_file
         h5py_file.path_folder = path_save
         h5py_file.file_name = (h5py_file.path_file).split('/')[-1]
         h5py_file.file_name_noExtension = '.'.join((h5py_file.file_name).split('.')[:-1])
         h5py_file.height = size_proj[0]
         h5py_file.width = size_proj[1]
-    
+
         h5py_files.append(h5py_file)
     return(h5py_files)
 
 def print_gpu_memory():
     t = torch.cuda.get_device_properties(0).total_memory
-    r = torch.cuda.memory_reserved(0) 
+    r = torch.cuda.memory_reserved(0)
     a = torch.cuda.memory_allocated(0)
     f = r-a  # free inside reserved
     print('GPU Memory usage:')
@@ -301,11 +301,11 @@ def fast_pytorch_median_filter2d(img, kernels): # Give torch kernels, or an inte
     return(img_tensor_median.cpu().detach().numpy().squeeze())
 
 def fast_pytorch_remove_zingers_chunk(img_stack, kernel_half_width, threshold_zinger, chunk_size = 50):
-    
+
     N = img_stack.shape[0]
     nb_chunk = N//chunk_size+1
     img_stack2 = np.zeros_like(img_stack)
-    
+
     if img_stack.shape[0] < chunk_size:
         return(fast_pytorch_remove_zingers_v2(img_stack, kernel_half_width, threshold_zinger, verbose = False))
     i1 = 0
@@ -317,7 +317,7 @@ def fast_pytorch_remove_zingers_chunk(img_stack, kernel_half_width, threshold_zi
         i2 += chunk_size
         img_stack2[i1:i2] = fast_pytorch_remove_zingers_v2(img_stack[i1-kernel_half_width:i2+kernel_half_width], kernel_half_width, threshold_zinger, verbose = False)[kernel_half_width:-kernel_half_width]
         print('.', end = '')
-    
+
     i1 += chunk_size
     img_stack2[i1:] = fast_pytorch_remove_zingers_v2(img_stack[i1-kernel_half_width:], kernel_half_width, threshold_zinger, verbose = False)[kernel_half_width:]
     img_stack = img_stack2
@@ -325,9 +325,9 @@ def fast_pytorch_remove_zingers_chunk(img_stack, kernel_half_width, threshold_zi
     return(img_stack)
 
 def fast_pytorch_remove_zingers_v1(img_stack, kernel_half_width, threshold_zinger, verbose = True):
-    
+
     # v1: Mean filter. Issue: mean is biased by zinger from neighbor slice
-    
+
     N = kernel_half_width*2 + 1 # MUST BE ODD
 
     kernel = np.ones([N,1,1])
@@ -337,10 +337,10 @@ def fast_pytorch_remove_zingers_v1(img_stack, kernel_half_width, threshold_zinge
     kernel = torch.as_tensor(kernel).cuda()
 
     x = np.reshape(img_stack, (1,1)+img_stack.shape).astype('float32')
-    x_tensor = torch.as_tensor(x).cuda()    
-    
+    x_tensor = torch.as_tensor(x).cuda()
+
 #     x2 = torch.nn.functional.conv3d(x_tensor, kernel, bias=None, stride=1, padding=(N//2, 0, 0))
-    
+
     # Manual padding
     N2 = N//2
     pad_fct = torch.nn.ReplicationPad3d((0,0,0,0,N2,N2))
@@ -360,7 +360,7 @@ def fast_pytorch_remove_zingers_v1(img_stack, kernel_half_width, threshold_zinge
         this_image_x[bool_error[0,0,i]] = this_image_x2[bool_error[0,0,i]]
         x_tensor[0,0,i] = this_image_x
     x = x_tensor.cpu().detach().numpy().squeeze()
-    
+
     del x_tensor, kernel, x2, bool_error
     torch.cuda.empty_cache()
     return(x)
@@ -368,7 +368,7 @@ def fast_pytorch_remove_zingers_v1(img_stack, kernel_half_width, threshold_zinge
 def fast_pytorch_remove_zingers_v2(img_stack, kernel_half_width, threshold_zinger, verbose = True):
 
     x = np.reshape(img_stack, (1,1)+img_stack.shape).astype('float32')
-    x_tensor = torch.as_tensor(x).cuda()    
+    x_tensor = torch.as_tensor(x).cuda()
 
     # Manual padding
     pad_fct = torch.nn.ReplicationPad3d((0,0,0,0,kernel_half_width,kernel_half_width))
@@ -407,11 +407,15 @@ def fast_pytorch_bin(img_stack,bin_factor, bin_factor_angle = 1):
     torch.cuda.empty_cache()
     return(out)
 
-def fast_pytorch_bin_2d(img,bin_factor):
-    kernel = torch.as_tensor(np.ones([1,1,bin_factor,bin_factor]).astype('float32')).cuda()
+def fast_pytorch_bin_2d(img,bin_factor, cpu = False):
+    kernel = torch.as_tensor(np.ones([1,1,bin_factor,bin_factor]).astype('float32'))
+    if not cpu:
+        kernel = kernel.cuda()
     kernel /= kernel.sum()
-    
-    img_tensor = torch.as_tensor(np.reshape(img, (1,1)+img.shape).astype('float32')).cuda()
+
+    img_tensor = torch.as_tensor(np.reshape(img, (1,1)+img.shape).astype('float32'))
+    if not cpu:
+        img_tensor = img_tensor.cuda()
     out_tensor = torch.nn.functional.conv2d(img_tensor, kernel, bias=None, stride=(bin_factor,bin_factor), padding=0)
     out = out_tensor.cpu().detach().numpy().squeeze()
 
@@ -431,7 +435,7 @@ def fast_pytorch_mean_2d(img,mean_factor):
     torch.cuda.empty_cache()
     return(out[:img.shape[0], :img.shape[1]])
 
-def fast_pytorch_bin_3d(vol_stack,bin_factor, chunk_size = 4*68):
+def fast_pytorch_bin_3d(vol_stack,bin_factor, chunk_size = 4*68, cpu = False):
     try:
         N = vol_stack.shape[0]
         nb_chunk = N//chunk_size+1
@@ -442,11 +446,16 @@ def fast_pytorch_bin_3d(vol_stack,bin_factor, chunk_size = 4*68):
         i2 = min(chunk_size, N)
         # print('.', end = '')
 
-        kernel = torch.as_tensor(np.ones([1,1,bin_factor,bin_factor,bin_factor]).astype('float32')).cuda()
+        kernel = torch.as_tensor(np.ones([1,1,bin_factor,bin_factor,bin_factor]).astype('float32'))
+        if not cpu:
+            kernel = kernel.cuda()
+
         kernel /= kernel.sum()
 
         for ind_chunk in range(nb_chunk):
-            vol_stack_tensor = torch.as_tensor(np.reshape(vol_stack[i1:i2], (1,1)+vol_stack[i1:i2].shape).astype('float32')).cuda()
+            vol_stack_tensor = torch.as_tensor(np.reshape(vol_stack[i1:i2], (1,1)+vol_stack[i1:i2].shape).astype('float32'))
+            if not cpu:
+                vol_stack_tensor = vol_stack_tensor.cuda()
             out = torch.nn.functional.conv3d(vol_stack_tensor, kernel, bias=None, stride=(bin_factor,bin_factor,bin_factor), padding=0)
             out_stack.append(out.cpu().detach().numpy().squeeze())
 
@@ -467,7 +476,7 @@ def fast_pytorch_bin_3d(vol_stack,bin_factor, chunk_size = 4*68):
             raise Exception('Error with chunk size')
 
 def fast_pytorch_bin_chunk(img_stack,bin_factor, bin_factor_angle = 1, chunk_size = 500, verbose = True):
-    
+
     N = img_stack.shape[0]
     nb_chunk = N//chunk_size+1
     out_stack = []
@@ -483,9 +492,9 @@ def fast_pytorch_bin_chunk(img_stack,bin_factor, bin_factor_angle = 1, chunk_siz
             print('.', end = '')
     return(np.concatenate(out_stack))
 
-def apply_offset(image, offset): # Apply a center-of-rotation offset to the sinogram. 
+def apply_offset(image, offset): # Apply a center-of-rotation offset to the sinogram.
     # This is to correct for when the exact COR is not aligned with the center of the detector
-    
+
     if offset == 0:
         return(image)
 
@@ -503,8 +512,8 @@ def apply_offset(image, offset): # Apply a center-of-rotation offset to the sino
     else:
         for i in range(image.shape[0]):
             image_out[i,:,:] = apply_offset(image[i,:,:], offset)
-        
-        
+
+
     return(image_out)
 
 
@@ -920,10 +929,9 @@ def registerCall(nb_it,refVol, vol, prefix_out, mask_path, ind_ROI_registration 
             kwargs['initialTransform']= transform
             transform = modify_transform_binning_factor(transform, 1.0/bin_factor)
 
-        vol_bin = fast_pytorch_bin_3d(vol,bin_factor, chunk_size = min(88, 34*bin_factor))
-        refVol_bin = fast_pytorch_bin_3d(refVol,bin_factor, chunk_size = min(88, 34*bin_factor))
-
-        maskTube_bin = (fast_pytorch_bin_2d(maskTube,bin_factor)>0).astype('uint8')
+        vol_bin = fast_pytorch_bin_3d(vol,bin_factor, chunk_size = min(88, 34*bin_factor), cpu = ~torch.cuda.is_available())
+        refVol_bin = fast_pytorch_bin_3d(refVol,bin_factor, chunk_size = min(88, 34*bin_factor), cpu = ~torch.cuda.is_available())
+        maskTube_bin = (fast_pytorch_bin_2d(maskTube,bin_factor, cpu = ~torch.cuda.is_available())>0).astype('uint8')
 
         # Mask: Both gas and solid phases inside the tube
         refVolMask_bin = np.tile(maskTube_bin, [vol_bin.shape[0], 1, 1]).astype('bool')
