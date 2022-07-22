@@ -338,9 +338,10 @@ for tile in tiles_queue:
     new_tile = (name_tile, new_scan_list)
     new_tiles_queue.append(new_tile)
 
-# print(new_tiles_queue[0][1][23])
-# new_tiles_queue[0] = (new_tiles_queue[0][0], new_tiles_queue[0][1][23:])
 
+ind_restart = 1
+print(new_tiles_queue[0][1][ind_restart])
+new_tiles_queue[0] = (new_tiles_queue[0][0], new_tiles_queue[0][1][ind_restart:])
 
 for new_tile in new_tiles_queue:
     print(new_tile[0])
@@ -372,10 +373,10 @@ for tile in new_tiles_queue:
     print('Processing scan: '+tile[1][0]['path_proj'].split('/')[-1])
     ind = 0
 
-    static = import_data(path_tile, tile[1][0])
-    File(path_tile+name_tile+'/'+tile[1][0]['ind']+'/b_movingRegisteredToStatic/').saveTiffStack(static)
+    # static = import_data(path_tile, tile[1][0])
+    # File(path_tile+name_tile+'/'+tile[1][0]['ind']+'/b_movingRegisteredToStatic/').saveTiffStack(static)
 
-    # static = File(path_tile+name_tile+'/'+tile[1][0]['ind']+'/b_movingRegisteredToStatic/').readAll()
+    static = File(path_tile+name_tile+'/'+tile[1][0]['ind']+'/b_movingRegisteredToStatic/').readAll()
 
     print(static.shape)
     moving_reg = static

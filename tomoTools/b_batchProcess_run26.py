@@ -32,278 +32,358 @@ path_save = '/global/homes/e/eboigne/cfs_als/2022_wood/'
 
 path_in = path_save
 
-torch.cuda.set_device(2)
+torch.cuda.set_device(3)
 
 
-#%% Run 23 (Walnut, low heat)
+#%% Run 26 (Birch, high heat)
 
 scans = []
 scans_queue = []
 tiles_queue = []
 
 if True:
-
     scan = {}
-    scan['path_proj'] = path_in+'/20220501_153433_23_SampleW1_2xLens_01_pre_2625.h5'
+    scan['path_proj'] = path_in+'/20220501_201222_26_SampleB3_2xLens_01_pre_1313.h5'
     scan['use_dark_from_scan'] = False
     scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
     scan['use_flat_from_scan'] = True
-    scan['COR'] = -15.9
-    scan['N_angles_per_half_circle'] = 2625
+    scan['COR'] = -18.4
+    scan['N_angles_per_half_circle'] = 1313
     scans.append(scan)
     scans_queue.append(scan)
 
     scan = {}
-    scan['path_proj'] = path_in+'/20220501_153933_23_SampleW1_2xLens_02_pre_2625.h5'
+    scan['path_proj'] = path_in+'/20220501_201533_26_SampleB3_2xLens_02_pre_1313.h5'
     scan['use_dark_from_scan'] = False
     scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
     scan['use_flat_from_scan'] = True
-    scan['COR'] = -15.9
-    scan['N_angles_per_half_circle'] = 2625
+    scan['COR'] = -18.28
+    scan['N_angles_per_half_circle'] = 1313
     scans.append(scan)
     scans_queue.append(scan)
 
     scan = {}
-    scan['path_proj'] = path_in+'/20220501_154455_23_SampleW1_2xLens_03_pre_2625.h5'
+    scan['path_proj'] = path_in+'/20220501_201833_26_SampleB3_2xLens_03_pre_1313.h5'
     scan['use_dark_from_scan'] = False
     scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
     scan['use_flat_from_scan'] = True
-    scan['COR'] = -15.9
-    scan['N_angles_per_half_circle'] = 2625
+    scan['COR'] = -18.28
+    scan['N_angles_per_half_circle'] = 1313
     scans.append(scan)
     scans_queue.append(scan)
 
     scan = {}
-    scan['path_proj'] = path_in+'/20220501_155412_23_SampleW1_2xLens_04_dry_1313.h5'
+    scan['path_proj'] = path_in+'/20220501_202138_26_SampleB3_2xLens_04_pre_1313.h5'
     scan['use_dark_from_scan'] = False
     scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
     scan['use_flat_from_scan'] = True
-    scan['COR'] = -15.9
+    scan['COR'] = -18.28
+    scan['N_angles_per_half_circle'] = 1313
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_202441_26_SampleB3_2xLens_05_pre_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -18.28
+    scan['N_angles_per_half_circle'] = 1313
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_202752_26_SampleB3_2xLens_06_pre_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -18.28
+    scan['N_angles_per_half_circle'] = 1313
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_202752_26_SampleB3_2xLens_07_dry_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -18.07
     scan['N_angles_per_half_circle'] = 1313
     scan['split_half_circles'] = True
     scans.append(scan)
     scans_queue.append(scan)
 
     scan = {}
-    scan['path_proj'] = path_in+'/20220501_155728_23_SampleW1_2xLens_05_1313.h5'
+    scan['path_proj'] = path_in+'/20220501_203908_26_SampleB3_2xLens_08_1313.h5'
     scan['use_dark_from_scan'] = False
     scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
     scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.2
+    scan['COR'] = -18.060000000000002
     scan['N_angles_per_half_circle'] = 1313
     scan['split_half_circles'] = True
     scans.append(scan)
     scans_queue.append(scan)
 
     scan = {}
-    scan['path_proj'] = path_in+'/20220501_160029_23_SampleW1_2xLens_06_1313.h5'
+    scan['path_proj'] = path_in+'/20220501_204217_26_SampleB3_2xLens_09_1313.h5'
     scan['use_dark_from_scan'] = False
     scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
     scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.1
+    scan['COR'] = -18.1
     scan['N_angles_per_half_circle'] = 1313
     scan['split_half_circles'] = True
     scans.append(scan)
     scans_queue.append(scan)
 
     scan = {}
-    scan['path_proj'] = path_in+'/20220501_160331_23_SampleW1_2xLens_07_1313.h5'
+    scan['path_proj'] = path_in+'/20220501_204527_26_SampleB3_2xLens_10_1313.h5'
     scan['use_dark_from_scan'] = False
     scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
     scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.1
+    scan['COR'] = -18.02
     scan['N_angles_per_half_circle'] = 1313
     scan['split_half_circles'] = True
     scans.append(scan)
     scans_queue.append(scan)
 
     scan = {}
-    scan['path_proj'] = path_in+'/20220501_160637_23_SampleW1_2xLens_08_1313.h5'
+    scan['path_proj'] = path_in+'/20220501_204835_26_SampleB3_2xLens_11_1313.h5'
     scan['use_dark_from_scan'] = False
     scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
     scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.1
+    scan['COR'] = -17.939999999999998
     scan['N_angles_per_half_circle'] = 1313
     scan['split_half_circles'] = True
     scans.append(scan)
     scans_queue.append(scan)
 
     scan = {}
-    scan['path_proj'] = path_in+'/20220501_160942_23_SampleW1_2xLens_09_1313.h5'
+    scan['path_proj'] = path_in+'/20220501_205140_26_SampleB3_2xLens_12_1313.h5'
     scan['use_dark_from_scan'] = False
     scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
     scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.2
+    scan['COR'] = -17.05
     scan['N_angles_per_half_circle'] = 1313
     scan['split_half_circles'] = True
     scans.append(scan)
     scans_queue.append(scan)
 
     scan = {}
-    scan['path_proj'] = path_in+'/20220501_161249_23_SampleW1_2xLens_10_1313.h5'
+    scan['path_proj'] = path_in+'/20220501_205639_26_SampleB3_2xLens_13_1313.h5'
     scan['use_dark_from_scan'] = False
     scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
     scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.0
+    scan['COR'] = -17.3
     scan['N_angles_per_half_circle'] = 1313
     scan['split_half_circles'] = True
     scans.append(scan)
     scans_queue.append(scan)
 
     scan = {}
-    scan['path_proj'] = path_in+'/20220501_161550_23_SampleW1_2xLens_11_1313.h5'
-    scan['use_dark_from_scan'] = False
-    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
-    scan['use_flat_from_scan'] = True
-    scan['COR'] = -20.8
-    scan['N_angles_per_half_circle'] = 1313
-    scan['split_half_circles'] = True
-    scans.append(scan)
-    scans_queue.append(scan)
-
-    scan = {}
-    scan['path_proj'] = path_in+'/20220501_161852_23_SampleW1_2xLens_12_1313.h5'
-    scan['use_dark_from_scan'] = False
-    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
-    scan['use_flat_from_scan'] = True
-    scan['COR'] = -23.2
-    scan['N_angles_per_half_circle'] = 1313
-    scan['split_half_circles'] = True
-    scans.append(scan)
-    scans_queue.append(scan)
-
-    scan = {}
-    scan['path_proj'] = path_in+'/20220501_162156_23_SampleW1_2xLens_13_1313.h5'
-    scan['use_dark_from_scan'] = False
-    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
-    scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.43
-    scan['N_angles_per_half_circle'] = 1313
-    scan['split_half_circles'] = True
-    scans.append(scan)
-    scans_queue.append(scan)
-
-    scan = {}
-    scan['path_proj'] = path_in+'/20220501_162500_23_SampleW1_2xLens_14_1313.h5'
-    scan['use_dark_from_scan'] = False
-    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
-    scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.43
-    scan['N_angles_per_half_circle'] = 1313
-    scan['split_half_circles'] = True
-    scans.append(scan)
-    scans_queue.append(scan)
-
-    scan = {}
-    scan['path_proj'] = path_in+'/20220501_162802_23_SampleW1_2xLens_15_1313.h5'
-    scan['use_dark_from_scan'] = False
-    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
-    scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.61
-    scan['N_angles_per_half_circle'] = 1313
-    scan['split_half_circles'] = True
-    scans.append(scan)
-    scans_queue.append(scan)
-
-    scan = {}
-    scan['path_proj'] = path_in+'/20220501_163107_23_SampleW1_2xLens_16_1313.h5'
-    scan['use_dark_from_scan'] = False
-    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
-    scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.61
-    scan['N_angles_per_half_circle'] = 1313
-    scan['split_half_circles'] = True
-    scans.append(scan)
-    scans_queue.append(scan)
-
-    scan = {}
-    scan['path_proj'] = path_in+'/20220501_163413_23_SampleW1_2xLens_17_1313.h5'
-    scan['use_dark_from_scan'] = False
-    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
-    scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.79
-    scan['N_angles_per_half_circle'] = 1313
-    scan['split_half_circles'] = True
-    scans.append(scan)
-    scans_queue.append(scan)
-
-    scan = {}
-    scan['path_proj'] = path_in+'/20220501_163718_23_SampleW1_2xLens_18_1313.h5'
-    scan['use_dark_from_scan'] = False
-    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
-    scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.72
-    scan['N_angles_per_half_circle'] = 1313
-    scan['split_half_circles'] = True
-    scans.append(scan)
-    scans_queue.append(scan)
-
-    scan = {}
-    scan['path_proj'] = path_in+'/20220501_164027_23_SampleW1_2xLens_19_1313.h5'
-    scan['use_dark_from_scan'] = False
-    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
-    scan['use_flat_from_scan'] = True
-    scan['COR'] = -16.72
-    scan['N_angles_per_half_circle'] = 1313
-    scan['split_half_circles'] = True
-    scans.append(scan)
-    scans_queue.append(scan)
-
-    scan = {}
-    scan['path_proj'] = path_in+'/20220501_164340_23_SampleW1_2xLens_20_cooling_1313.h5'
-    scan['use_dark_from_scan'] = False
-    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
-    scan['use_flat_from_scan'] = True
-    scan['COR'] = -19.080000000000002
-    scan['N_angles_per_half_circle'] = 1313
-    scan['split_half_circles'] = True
-    scans.append(scan)
-    scans_queue.append(scan)
-
-    scan = {}
-    scan['path_proj'] = path_in+'/20220501_164643_23_SampleW1_2xLens_21_cooling_1313.h5'
-    scan['use_dark_from_scan'] = False
-    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
-    scan['use_flat_from_scan'] = True
-    scan['COR'] = -17.0
-    scan['N_angles_per_half_circle'] = 1313
-    scan['split_half_circles'] = True
-    scans.append(scan)
-    scans_queue.append(scan)
-
-    scan = {}
-    scan['path_proj'] = path_in+'/20220501_164945_23_SampleW1_2xLens_22_post_2625.h5'
+    scan['path_proj'] = path_in+'/20220501_205954_26_SampleB3_2xLens_14_1313.h5'
     scan['use_dark_from_scan'] = False
     scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
     scan['use_flat_from_scan'] = True
     scan['COR'] = -17.1
-    scan['N_angles_per_half_circle'] = 2625
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
     scans.append(scan)
     scans_queue.append(scan)
 
     scan = {}
-    scan['path_proj'] = path_in+'/20220501_165449_23_SampleW1_2xLens_23_post_2625.h5'
-    scan['use_dark_from_scan'] = False
-    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
-    scan['use_flat_from_scan'] = True
-    scan['COR'] = -17.5
-    scan['N_angles_per_half_circle'] = 2625
-    scans.append(scan)
-    scans_queue.append(scan)
-
-    scan = {}
-    scan['path_proj'] = path_in+'/20220501_165958_23_SampleW1_2xLens_24_post_2625.h5'
+    scan['path_proj'] = path_in+'/20220501_210300_26_SampleB3_2xLens_15_1313.h5'
     scan['use_dark_from_scan'] = False
     scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
     scan['use_flat_from_scan'] = True
     scan['COR'] = -17.8
-    scan['N_angles_per_half_circle'] = 2625
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
     scans.append(scan)
     scans_queue.append(scan)
 
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_210604_26_SampleB3_2xLens_16_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -17.7
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
+    scans.append(scan)
+    scans_queue.append(scan)
 
-tiles_queue.append(('run23_walnut_lowHeat', scans))
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_210932_26_SampleB3_2xLens_17_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -17.7
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_211242_26_SampleB3_2xLens_18_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -17.580000000000002
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_211555_26_SampleB3_2xLens_19_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -17.75
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_211853_26_SampleB3_2xLens_20_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -17.9
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_212225_26_SampleB3_2xLens_21_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -17.75
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_212618_26_SampleB3_2xLens_22_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -17.75
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_213004_26_SampleB3_2xLens_23_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -17.75
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_213328_26_SampleB3_2xLens_24_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -18.2
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_213652_26_SampleB3_2xLens_25_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -20.0
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_214006_26_SampleB3_2xLens_26_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -20.7
+    scan['N_angles_per_half_circle'] = 1313
+    scan['split_half_circles'] = True
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_214316_26_SampleB3_2xLens_27-post_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -20.6
+    scan['N_angles_per_half_circle'] = 1313
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_214623_26_SampleB3_2xLens_28-post_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -20.6
+    scan['N_angles_per_half_circle'] = 1313
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_214926_26_SampleB3_2xLens_29-post_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -20.7
+    scan['N_angles_per_half_circle'] = 1313
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_215226_26_SampleB3_2xLens_30-post_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -21.0
+    scan['N_angles_per_half_circle'] = 1313
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_215521_26_SampleB3_2xLens_31-post_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -21.0
+    scan['N_angles_per_half_circle'] = 1313
+    scans.append(scan)
+    scans_queue.append(scan)
+
+    scan = {}
+    scan['path_proj'] = path_in+'/20220501_215820_26_SampleB3_2xLens_32-post_1313.h5'
+    scan['use_dark_from_scan'] = False
+    scan['path_dark'] = path_in+'/20220501_094201_21_dark_2560x1396.h5'
+    scan['use_flat_from_scan'] = True
+    scan['COR'] = -21.1
+    scan['N_angles_per_half_circle'] = 1313
+    scans.append(scan)
+    scans_queue.append(scan)
+
 path_mask = path_in+'mask_allWhite.tif'
+tiles_queue.append(('run26_birch_highHeat', scans))
 
 #%% Check which tiles are used
 
@@ -343,9 +423,9 @@ for tile in tiles_queue:
     new_tile = (name_tile, new_scan_list)
     new_tiles_queue.append(new_tile)
 
-ind_restart = 1
-print(new_tiles_queue[0][1][ind_restart])
-new_tiles_queue[0] = (new_tiles_queue[0][0], new_tiles_queue[0][1][ind_restart:])
+# ind_restart = 1
+# print(new_tiles_queue[0][1][ind_restart])
+# new_tiles_queue[0] = (new_tiles_queue[0][0], new_tiles_queue[0][1][ind_restart:])
 
 for new_tile in new_tiles_queue:
     print(new_tile[0])
@@ -377,10 +457,10 @@ for tile in new_tiles_queue:
     print('Processing scan: '+tile[1][0]['path_proj'].split('/')[-1])
     ind = 0
 
-    # static = import_data(path_tile, tile[1][0])
-    # File(path_tile+name_tile+'/'+tile[1][0]['ind']+'/b_movingRegisteredToStatic/').saveTiffStack(static)
+    static = import_data(path_tile, tile[1][0])
+    File(path_tile+name_tile+'/'+tile[1][0]['ind']+'/b_movingRegisteredToStatic/').saveTiffStack(static)
 
-    static = File(path_tile+name_tile+'/'+tile[1][0]['ind']+'/b_movingRegisteredToStatic/').readAll()
+    # static = File(path_tile+name_tile+'/'+tile[1][0]['ind']+'/b_movingRegisteredToStatic/').readAll()
 
     print(static.shape)
     moving_reg = static
