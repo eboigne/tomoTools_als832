@@ -1007,3 +1007,4 @@ def custom_3d_gaussian_filter(filter_half_width):
     # plt.imshow(gaussian_filter[filter_half_width])
 
     return(gaussian_filter)
+
