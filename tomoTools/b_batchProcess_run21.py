@@ -32,7 +32,7 @@ path_save = '/global/homes/e/eboigne/cfs_als/2022_wood/'
 
 path_in = path_save
 
-
+torch.cuda.set_device(1)
 
 #%% Run 21 (Oak, low heat)
 

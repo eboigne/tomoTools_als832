@@ -30,6 +30,10 @@ Then clone the scripts, and run them in a local notebook:
 
 `jupyter-notebook`
 
+For graph-analysis of skeleton using package `sknw` from [here](https://github.com/Image-Py/sknw):
+
+`mamba install -c conda-forge -c anaconda networkx numba`
+
 ## Debug
 If the kernel dies every time the Astra algorithm is run, try uninstalling and re-installing Astra:
 
