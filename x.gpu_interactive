@@ -1,1 +1,1 @@
-salloc --nodes 1 --qos interactive --constraint gpu --gpus 1 --account=m1891_g -t 04:00:00
+salloc --nodes 1 --qos interactive --constraint gpu --gpus 1 -t 04:00:00
