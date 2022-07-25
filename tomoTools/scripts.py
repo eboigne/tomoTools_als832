@@ -1008,3 +1008,15 @@ def custom_3d_gaussian_filter(filter_half_width):
 
     return(gaussian_filter)
 
+
+class Data():
+    def __init__(self):
+        pass
+    def __getstate__(self):
+        return(self.__dict__)
+    def __setstate__(self, d):
+        self.__dict__ = d
+
+
+
+
