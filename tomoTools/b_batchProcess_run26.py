@@ -423,7 +423,7 @@ for tile in tiles_queue:
     new_tile = (name_tile, new_scan_list)
     new_tiles_queue.append(new_tile)
 
-ind_restart = 46
+ind_restart = 31
 print(new_tiles_queue[0][1][ind_restart])
 new_tiles_queue[0] = (new_tiles_queue[0][0], new_tiles_queue[0][1][ind_restart:])
 
@@ -466,6 +466,7 @@ for tile in new_tiles_queue:
     moving_reg = static
 
     for ind_scan in range(1, len(tile[1])):
+    # for ind_scan in range(1, 3):
         scan = tile[1][ind_scan]
 
         print('\n\n============ NEW SCAN ============\n')
