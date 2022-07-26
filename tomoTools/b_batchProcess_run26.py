@@ -423,7 +423,7 @@ for tile in tiles_queue:
     new_tile = (name_tile, new_scan_list)
     new_tiles_queue.append(new_tile)
 
-ind_restart = 45
+ind_restart = 46
 print(new_tiles_queue[0][1][ind_restart])
 new_tiles_queue[0] = (new_tiles_queue[0][0], new_tiles_queue[0][1][ind_restart:])
 
